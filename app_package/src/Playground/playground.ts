@@ -3,32 +3,41 @@ import "@babylonjs/loaders";
 
 class Playground {
     public static CreateScene(engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON.Scene {
-        // This creates a basic Babylon Scene object (non-mesh)
+        function Grass(height: number, scene: BABYLON.Scene) {
+            let width = 0.5;
+            let indices = [0,1,2];
+            let positions = [
+                0,0,0,
+                width,0,0,
+                width / 2,height,0
+            ];
+            let normals: number[] = [];
+            BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+
+            let blade = new BABYLON.Mesh("custom", scene);
+            let vertexData = new BABYLON.VertexData();
+            vertexData.positions = positions;
+            vertexData.indices = indices;
+            vertexData.normals = normals;
+            vertexData.applyToMesh(blade);
+
+            return blade;
+        }
+
+
+        //scene setup
         var scene = new BABYLON.Scene(engine);
-
-        // This creates and positions a free camera (non-mesh)
-        var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, -10), scene);
-
-        // This targets the camera to scene origin
-        camera.setTarget(BABYLON.Vector3.Zero());
-
-        // This attaches the camera to the canvas
+        const camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI/2, 1, 10, new BABYLON.Vector3(0, 0, 0), scene);
         camera.attachControl(canvas, true);
-
-        // This creates a light, aiming 0,1,0 - to the sky (non-mesh)
         var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-
-        // Default intensity is 1. Let's dim the light a small amount
         light.intensity = 0.7;
 
-        // Our built-in 'sphere' shape. Params: name, subdivs, size, scene
-        var sphere = BABYLON.Mesh.CreateSphere("sphere1", 16, 2, scene);
-
-        // Move the sphere upward 1/2 its height
-        sphere.position.y = 1;
+        var mat = new BABYLON.StandardMaterial("mat", scene);
 
         // Our built-in 'ground' shape. Params: name, width, depth, subdivs, scene
         var ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 2, scene);
+        var blade = Grass(2, scene);
+        blade.material = mat;
 
         return scene;
     }

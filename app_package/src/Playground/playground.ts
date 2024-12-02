@@ -3,8 +3,54 @@ import "@babylonjs/loaders";
 
 class Playground {
     public static CreateScene(engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON.Scene {
-        function Grass(height: number, scene: BABYLON.Scene) {
-            let width = 0.5;
+
+        // creates a field of grass with first corner (xStart, zStart) of size (xBound, zBound) with count number of blades
+        function CreateGrass(count: number, xStart: number, zStart: number, xBound: number, zBound: number, scene: BABYLON.Scene) {
+            let height = 0.5;
+            let width = 0.0625;
+            let indices = [];
+            let positions = [];
+            let normals: number[] = [];
+            for(let i = 0; i < count; i++) {
+                let x = xStart + Math.random() * xBound;
+                let z = zStart + Math.random() * zBound;
+                let iOffset = i * 9;
+
+                indices.push(
+                    iOffset + 0, iOffset + 1, iOffset + 2,
+                    iOffset + 1, iOffset + 3, iOffset + 2,
+                    iOffset + 2, iOffset + 3, iOffset + 4,
+                    iOffset + 3, iOffset + 5, iOffset + 4,
+                    iOffset + 4, iOffset + 5, iOffset + 6,
+                    iOffset + 5, iOffset + 7, iOffset + 6,
+                    iOffset + 6, iOffset + 7, iOffset + 8
+                );
+                positions.push(
+                    x, 0, z,
+                    x + width, 0, z,
+                    x + width/8, height/4, z,
+                    x + 7*width/8, height/4, z,
+                    x + width/4, height/2, z,
+                    x + 3*width/4, height/2, z,
+                    x + 3*width/8, 3*height/4, z,
+                    x + 5*width/8, 3*height/4, z,
+                    x + width/2, height, z
+                );
+            }
+            BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+
+            let vertexData = new BABYLON.VertexData();
+            vertexData.positions = positions;
+            vertexData.indices = indices;
+            vertexData.normals = normals;
+
+            var grass = new BABYLON.Mesh("grass", scene);
+            vertexData.applyToMesh(grass);
+            return grass;
+        }
+
+        // single blade method deprecated (entire functionality moved to CreateGrass)
+        function CreateBlade(x: number, z: number, height: number, width: number, scene: BABYLON.Scene) {
             let indices = [
                 0, 1, 2,
                 1, 3, 2,
@@ -15,28 +61,26 @@ class Playground {
                 6, 7, 8
             ];
             let positions = [
-                0, 0, 0,
-                width, 0, 0,
-                width/8, height/4, 0,
-                7*width/8, height/4, 0,
-                width/4, height/2, 0,
-                3*width/4, height/2, 0,
-                3*width/8, 3*height/4, 0,
-                5*width/8, 3*height/4, 0,
-                width/2, height, 0
+                x, 0, z,
+                x + width, 0, z,
+                x + width/8, height/4, z,
+                x + 7*width/8, height/4, z,
+                x + width/4, height/2, z,
+                x + 3*width/4, height/2, z,
+                x + 3*width/8, 3*height/4, z,
+                x + 5*width/8, 3*height/4, z,
+                x + width/2, height, z
             ];
             
             let normals: number[] = [];
             BABYLON.VertexData.ComputeNormals(positions, indices, normals);
 
-            let blade = new BABYLON.Mesh("custom", scene);
             let vertexData = new BABYLON.VertexData();
             vertexData.positions = positions;
             vertexData.indices = indices;
             vertexData.normals = normals;
-            vertexData.applyToMesh(blade);
 
-            return blade;
+            return vertexData;
         }
 
 
@@ -46,13 +90,16 @@ class Playground {
         camera.attachControl(canvas, true);
         var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
         light.intensity = 0.7;
-
-        var mat = new BABYLON.StandardMaterial("mat", scene);
-
-        // Our built-in 'ground' shape. Params: name, width, depth, subdivs, scene
         var ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 2, scene);
-        var blade = Grass(2, scene);
-        blade.material = mat;
+
+        // todo: custom shader material to do the wavy and the green
+        var mat = new BABYLON.StandardMaterial("mat", scene);
+        mat.diffuseColor = new BABYLON.Color3(0, 1.5, .5);
+        mat.backFaceCulling = false;
+        
+        // this generates the custom grass mesh to place on our ground mesh
+        var grass = CreateGrass(500, -3, -3, 6, 6, scene);
+        grass.material = mat;
 
         return scene;
     }

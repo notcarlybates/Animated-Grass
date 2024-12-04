@@ -118,15 +118,16 @@ class Playground {
 
             vec2 uv = (vec2(position.x/maxPos.x, position.z/maxPos.y));
             vec4 color = texture(noiseMap, uv);
-            float val = color.x + color.y + color.z;
-            val = 1.0;
+            float noise = (color.x + color.y + color.z) / 3.0;
+            float xPower = 0.1;
+            float zPower = 0.3;
+            float xFreq = 2.0;
+            float zFreq = 2.0;
 
             vec3 newPosition = position;
 
-            newPosition.x += 0.2 * sin(position.z * 4.0 * val + time) * newPosition.y;
-            newPosition.z += 0.6 * cos(position.x * 1.0 * val + time) * color.y * newPosition.y;
-
-            // newPos = function_height * trig(pos * function_frequency + time) * wind
+            newPosition.x += xPower * sin(position.z * xFreq * noise + time) * newPosition.y;
+            newPosition.z += zPower * sin(position.x * zFreq * noise + time) * color.y * newPosition.y;
         
             vPosition = newPosition;
             vNormal = normal;
@@ -137,8 +138,8 @@ class Playground {
     var fragment = `
     
 
-    uniform vec3 colorTop;
-    uniform vec3 colorBot;
+    uniform vec3 color1;
+    uniform vec3 color2;
 
     varying vec3 vPosition;
 
@@ -147,7 +148,7 @@ class Playground {
             // creating the gradient 
 
             // https://thebookofshaders.com/glossary/?search=mix
-            vec3 color = mix(colorTop, colorBot, vPosition.y);
+            vec3 color = mix(color1, color2, vPosition.y);
 
             gl_FragColor = vec4(color, 1.0);
 
@@ -158,20 +159,20 @@ class Playground {
         fragmentSource: fragment
     }, {
         attributes: ["position", "normal"],
-        uniforms: ["worldViewProjection", "time", "colorTop", "colorBot", "maxPos"],
+        uniforms: ["worldViewProjection", "time", "color1", "color2", "maxPos"],
         samplers: ["noiseMap"]
     });
 
 
     myShaderMaterial.setTexture("noiseMap", noise);
-    myShaderMaterial.setColor3("colorTop", new BABYLON.Color3(0.0, 0.2, 0.0));
-    myShaderMaterial.setColor3("colorBot", new BABYLON.Color3(0.8, 1.0, 0.0));
+    myShaderMaterial.setColor3("color1", new BABYLON.Color3(0.0, 0.2, 0.0));
+    myShaderMaterial.setColor3("color2", new BABYLON.Color3(0.8, 1.0, 0.0));
     myShaderMaterial.setVector2("maxPos", new BABYLON.Vector2(6,6));
 
     myShaderMaterial.backFaceCulling = false;
     
     // this generates the custom grass mesh to place on our ground mesh
-    var grass = CreateGrass(10000, -3, -3, 6, 6, scene);
+    var grass = CreateGrass(30000, -3, -3, 6, 6, scene);
     grass.material = myShaderMaterial;
 
 

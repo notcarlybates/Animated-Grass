@@ -14,5 +14,8 @@
   "devDependencies": {
     "concurrently": "^6.2.1",
     "recursive-install": "^1.4.0"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^7.37.0"
   }
 }

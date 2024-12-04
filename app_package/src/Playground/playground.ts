@@ -86,22 +86,90 @@ class Playground {
 
         //scene setup
         var scene = new BABYLON.Scene(engine);
+
         const camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI/2, 1, 10, new BABYLON.Vector3(0, 0, 0), scene);
         camera.attachControl(canvas, true);
+
         var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
         light.intensity = 0.7;
+
         var ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 2, scene);
 
-        // todo: custom shader material to do the wavy and the green
-        var mat = new BABYLON.StandardMaterial("mat", scene);
-        mat.diffuseColor = new BABYLON.Color3(0, 1.5, .5);
-        mat.backFaceCulling = false;
-        
-        // this generates the custom grass mesh to place on our ground mesh
-        var grass = CreateGrass(500, -3, -3, 6, 6, scene);
-        grass.material = mat;
+        // todo: add noise to the sway
 
-        return scene;
+        var vertex = `
+        attribute vec3 position;
+        attribute vec3 normal;
+
+        uniform mat4 worldViewProjection;
+        uniform float time;
+
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+
+        void main() {
+
+            // calculating the updated positions for each triangle based off its height
+            // higher y axis = more sway
+
+            vec3 newPosition = position;
+
+            newPosition.x += 0.1 * sin(position.z * 10.0 + time) * newPosition.y;;
+            newPosition.z += 0.1 * sin(position.x * 10.0 + time) * newPosition.y;;
+
+            // newPos = function_height * trig(pos * function_frequency + time) * wind
+        
+            vPosition = newPosition;
+            vNormal = normal;
+        
+            gl_Position = worldViewProjection * vec4(newPosition, 1.0);
+        }`;
+
+    var fragment = `
+    
+
+    uniform vec3 colorTop;
+    uniform vec3 colorBot;
+
+    varying vec3 vPosition;
+
+        void main() {
+
+            // creating the gradient 
+
+            // https://thebookofshaders.com/glossary/?search=mix
+            vec3 color = mix(colorTop, colorBot, vPosition.y);
+
+            gl_FragColor = vec4(color, 1.0);
+
+        }
+        `
+    var myShaderMaterial = new BABYLON.ShaderMaterial("shader", scene, {
+        vertexSource: vertex,
+        fragmentSource: fragment
+    }, {
+        attributes: ["position", "normal"],
+        uniforms: ["worldViewProjection", "time", "colorTop", "colorBot"]
+    });
+
+    myShaderMaterial.setColor3("colorTop", new BABYLON.Color3(0.0, 0.2, 0.0));
+    myShaderMaterial.setColor3("colorBot", new BABYLON.Color3(0.8, 1.0, 0.0));
+
+    myShaderMaterial.backFaceCulling = false;
+    
+    // this generates the custom grass mesh to place on our ground mesh
+    var grass = CreateGrass(10000, -3, -3, 6, 6, scene);
+    grass.material = myShaderMaterial;
+
+
+    // updates time for grass sway
+    function update() {
+        var time = performance.now()/1000;
+        myShaderMaterial.setFloat("time", time);
+    }
+    scene.registerBeforeRender(update);
+
+    return scene;
     }
 }
 

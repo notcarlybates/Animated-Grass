@@ -4,7 +4,7 @@ import "@babylonjs/loaders";
 class Playground {
     public static CreateScene(engine: BABYLON.Engine, canvas: HTMLCanvasElement): BABYLON.Scene {
 
-        // creates a field of grass with first corner (xStart, zStart) of size (xBound, zBound) with count number of blades
+        // Creates a field of grass with first corner (xStart, zStart) of size (xBound, zBound) with count number of blades
         function CreateGrass(count: number, xStart: number, zStart: number, xBound: number, zBound: number, scene: BABYLON.Scene) {
             let height = 0.5;
             let width = 0.0625;
@@ -49,7 +49,7 @@ class Playground {
             return grass;
         }
 
-        // single blade method deprecated (entire functionality moved to CreateGrass)
+        // Single blade method deprecated (entire functionality moved to CreateGrass)
         function CreateBlade(x: number, z: number, height: number, width: number, scene: BABYLON.Scene) {
             let indices = [
                 0, 1, 2,
@@ -84,7 +84,7 @@ class Playground {
         }
 
 
-        //scene setup
+        // Scene setup
         var scene = new BABYLON.Scene(engine);
 
         const camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI/2, 1, 10, new BABYLON.Vector3(0, 0, 0), scene);
@@ -94,11 +94,15 @@ class Playground {
         light.intensity = 0.7;
 
         var ground = BABYLON.Mesh.CreateGround("ground1", 6, 6, 2, scene);
+        var dirt = new BABYLON.StandardMaterial("dirty dirt", scene);
+        dirt.diffuseColor = new BABYLON.Color3(0.25, 0.25, 0.0);
+        dirt.specularPower = 1000000000;
+        ground.material = dirt;
 
-        // todo: add noise to the sway
-
+        // Our noise texture
         var noise = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/distortion.png", scene);
 
+        // Vertex shader
         var vertex = `
         attribute vec3 position;
         attribute vec3 normal;
@@ -111,23 +115,25 @@ class Playground {
         varying vec3 vPosition;
         varying vec3 vNormal;
 
+        // Calculating the wind
         void main() {
 
-            // calculating the updated positions for each triangle based off its height
-            // higher y axis = more sway
-
+            // Noise calculation based off distortion texture
             vec2 uv = (vec2(position.x/maxPos.x, position.z/maxPos.y));
             vec4 color = texture(noiseMap, uv);
             float noise = (color.x + color.y + color.z) / 3.0;
-            float xPower = 0.1;
-            float zPower = 0.3;
-            float xFreq = 2.0;
-            float zFreq = 2.0;
+
+            // Defining the power of the wind
+            float xPower = 0.1; // Power defines the sway intensity of each blade
+            float zPower = 0.2;
+            float xFreq = 2.0; // Frequency defines the speed of the sway
+            float zFreq = 3.0;
 
             vec3 newPosition = position;
 
+            // Calculating and updating the grass
             newPosition.x += xPower * sin(position.z * xFreq * noise + time) * newPosition.y;
-            newPosition.z += zPower * sin(position.x * zFreq * noise + time) * color.y * newPosition.y;
+            newPosition.z += zPower * sin(position.x * zFreq * noise + time) * newPosition.y;
         
             vPosition = newPosition;
             vNormal = normal;
@@ -135,6 +141,8 @@ class Playground {
             gl_Position = worldViewProjection * vec4(newPosition, 1.0);
         }`;
 
+
+    // Fragment shader
     var fragment = `
     
 
@@ -145,9 +153,7 @@ class Playground {
 
         void main() {
 
-            // creating the gradient 
-
-            // https://thebookofshaders.com/glossary/?search=mix
+            // Creating the gradient
             vec3 color = mix(color1, color2, vPosition.y);
 
             gl_FragColor = vec4(color, 1.0);
@@ -171,12 +177,12 @@ class Playground {
 
     myShaderMaterial.backFaceCulling = false;
     
-    // this generates the custom grass mesh to place on our ground mesh
+    // This generates the custom grass mesh to place on our ground mesh
     var grass = CreateGrass(30000, -3, -3, 6, 6, scene);
     grass.material = myShaderMaterial;
 
 
-    // updates time for grass sway
+    // Creates time for grass sway
     function update() {
         var time = performance.now()/1000;
         myShaderMaterial.setFloat("time", time);

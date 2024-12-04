@@ -97,12 +97,16 @@ class Playground {
 
         // todo: add noise to the sway
 
+        var noise = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/distortion.png", scene);
+
         var vertex = `
         attribute vec3 position;
         attribute vec3 normal;
 
         uniform mat4 worldViewProjection;
         uniform float time;
+        uniform sampler2D noiseMap;
+        uniform vec2 maxPos;
 
         varying vec3 vPosition;
         varying vec3 vNormal;
@@ -112,10 +116,15 @@ class Playground {
             // calculating the updated positions for each triangle based off its height
             // higher y axis = more sway
 
+            vec2 uv = (vec2(position.x/maxPos.x, position.z/maxPos.y));
+            vec4 color = texture(noiseMap, uv);
+            float val = color.x + color.y + color.z;
+            val = 1.0;
+
             vec3 newPosition = position;
 
-            newPosition.x += 0.1 * sin(position.z * 10.0 + time) * newPosition.y;;
-            newPosition.z += 0.1 * sin(position.x * 10.0 + time) * newPosition.y;;
+            newPosition.x += 0.2 * sin(position.z * 4.0 * val + time) * newPosition.y;
+            newPosition.z += 0.6 * cos(position.x * 1.0 * val + time) * color.y * newPosition.y;
 
             // newPos = function_height * trig(pos * function_frequency + time) * wind
         
@@ -149,11 +158,15 @@ class Playground {
         fragmentSource: fragment
     }, {
         attributes: ["position", "normal"],
-        uniforms: ["worldViewProjection", "time", "colorTop", "colorBot"]
+        uniforms: ["worldViewProjection", "time", "colorTop", "colorBot", "maxPos"],
+        samplers: ["noiseMap"]
     });
 
+
+    myShaderMaterial.setTexture("noiseMap", noise);
     myShaderMaterial.setColor3("colorTop", new BABYLON.Color3(0.0, 0.2, 0.0));
     myShaderMaterial.setColor3("colorBot", new BABYLON.Color3(0.8, 1.0, 0.0));
+    myShaderMaterial.setVector2("maxPos", new BABYLON.Vector2(6,6));
 
     myShaderMaterial.backFaceCulling = false;
     

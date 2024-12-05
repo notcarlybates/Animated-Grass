@@ -154,6 +154,7 @@ class Playground {
         void main() {
 
             // Creating the gradient
+            // https://thebookofshaders.com/glossary/?search=mix
             vec3 color = mix(color1, color2, vPosition.y);
 
             gl_FragColor = vec4(color, 1.0);
